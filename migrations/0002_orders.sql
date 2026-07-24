@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS orders (
     number TEXT PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -8,3 +9,6 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 CREATE INDEX IF NOT EXISTS idx_orders_user_id_uploaded_at ON orders (user_id, uploaded_at DESC);
+
+-- +goose Down
+DROP TABLE IF EXISTS orders;

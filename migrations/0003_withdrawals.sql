@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE IF NOT EXISTS withdrawals (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -7,3 +8,6 @@ CREATE TABLE IF NOT EXISTS withdrawals (
 );
 
 CREATE INDEX IF NOT EXISTS idx_withdrawals_user_id_processed_at ON withdrawals (user_id, processed_at DESC);
+
+-- +goose Down
+DROP TABLE IF EXISTS withdrawals;

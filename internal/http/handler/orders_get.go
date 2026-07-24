@@ -1,16 +1,17 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
-	httpMiddleware "go-musthave-diploma-tpl/internal/http/middleware"
+	"go-musthave-diploma-tpl/internal/http/middleware"
+	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
+
 	"go.uber.org/zap"
 )
 
-type GetOrdersResponse struct {
+type OrderResponse struct {
 	Number     string    `json:"number"`
 	Status     string    `json:"status"`
 	Accrual    float64   `json:"accrual,omitempty"`
@@ -27,13 +28,11 @@ func NewGetOrders(orders *service.OrderService, logger *zap.Logger) http.Handler
 }
 
 func (h *getOrdersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	userID := httpMiddleware.UserIDFromContext(r.Context())
+	userID := middleware.UserIDFromContext(r.Context())
 	orders, err := h.orders.List(r.Context(), userID)
 	if err != nil {
-		if h.logger != nil {
-			h.logger.Error("get orders failed", zap.Error(err))
-		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		h.logger.Error("get orders failed", zap.Error(err))
+		response.Error(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 	if len(orders) == 0 {
@@ -41,16 +40,14 @@ func (h *getOrdersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := make([]GetOrdersResponse, 0, len(orders))
+	resp := make([]OrderResponse, 0, len(orders))
 	for _, order := range orders {
-		resp = append(resp, GetOrdersResponse{
+		resp = append(resp, OrderResponse{
 			Number:     order.Number,
 			Status:     string(order.Status),
 			Accrual:    order.Accrual,
 			UploadedAt: order.UploadedAt,
 		})
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp)
+	_ = response.JSON(w, http.StatusOK, resp)
 }

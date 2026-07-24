@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
 	httpMiddleware "go-musthave-diploma-tpl/internal/http/middleware"
+	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
 	"go.uber.org/zap"
 )
@@ -32,7 +32,7 @@ func (h *withdrawalsGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 		if h.logger != nil {
 			h.logger.Error("get withdrawals failed", zap.Error(err))
 		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		response.Error(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 	if len(withdrawals) == 0 {
@@ -48,7 +48,5 @@ func (h *withdrawalsGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 			ProcessedAt: item.ProcessedAt,
 		})
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp)
+	_ = response.JSON(w, http.StatusOK, resp)
 }

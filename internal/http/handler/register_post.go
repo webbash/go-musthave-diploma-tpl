@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"go-musthave-diploma-tpl/internal/domain"
+	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
+
 	"go.uber.org/zap"
 )
 
@@ -31,27 +33,23 @@ func NewRegister(auth *service.AuthService, logger *zap.Logger) http.Handler {
 func (h *registerPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		response.Error(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	res, err := h.auth.Register(r.Context(), req.Login, req.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, service.ErrAlreadyExists), errors.Is(err, domain.ErrAlreadyExists):
-			http.Error(w, "conflict", http.StatusConflict)
-		case errors.Is(err, service.ErrInvalidInput):
-			http.Error(w, "invalid request", http.StatusBadRequest)
+		case errors.Is(err, domain.ErrAlreadyExists):
+			response.Error(w, http.StatusConflict, "conflict")
+		case errors.Is(err, domain.ErrInvalidInput):
+			response.Error(w, http.StatusBadRequest, "invalid request")
 		default:
-			if h.logger != nil {
-				h.logger.Error("register failed", zap.Error(err))
-			}
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			h.logger.Error("register failed", zap.Error(err))
+			response.Error(w, http.StatusInternalServerError, "internal error")
 		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(RegisterResponse{Token: res.Token})
+	_ = response.JSON(w, http.StatusOK, RegisterResponse{Token: res.Token})
 }

@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"go-musthave-diploma-tpl/internal/domain"
+	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
+
 	"go.uber.org/zap"
 )
 
@@ -31,27 +33,23 @@ func NewLogin(auth *service.AuthService, logger *zap.Logger) http.Handler {
 func (h *loginPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		response.Error(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	res, err := h.auth.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, service.ErrUnauthorized), errors.Is(err, domain.ErrUnauthorized):
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-		case errors.Is(err, service.ErrInvalidInput):
-			http.Error(w, "invalid request", http.StatusBadRequest)
+		case errors.Is(err, domain.ErrUnauthorized):
+			response.Error(w, http.StatusUnauthorized, "unauthorized")
+		case errors.Is(err, domain.ErrInvalidInput):
+			response.Error(w, http.StatusBadRequest, "invalid request")
 		default:
-			if h.logger != nil {
-				h.logger.Error("login failed", zap.Error(err))
-			}
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			h.logger.Error("login failed", zap.Error(err))
+			response.Error(w, http.StatusInternalServerError, "internal error")
 		}
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(LoginResponse{Token: res.Token})
+	_ = response.JSON(w, http.StatusOK, LoginResponse{Token: res.Token})
 }

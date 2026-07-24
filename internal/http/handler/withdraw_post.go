@@ -7,7 +7,9 @@ import (
 
 	"go-musthave-diploma-tpl/internal/domain"
 	httpMiddleware "go-musthave-diploma-tpl/internal/http/middleware"
+	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
+
 	"go.uber.org/zap"
 )
 
@@ -30,23 +32,21 @@ func (h *withdrawPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	var req WithdrawRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request", http.StatusBadRequest)
+		response.Error(w, http.StatusBadRequest, "invalid request")
 		return
 	}
 
 	if err := h.balance.Withdraw(r.Context(), userID, req.Order, req.Sum); err != nil {
 		switch {
-		case errors.Is(err, service.ErrInvalidOrder), errors.Is(err, domain.ErrInvalidOrder):
-			http.Error(w, "invalid order", http.StatusUnprocessableEntity)
-		case errors.Is(err, service.ErrInvalidInput):
-			http.Error(w, "invalid request", http.StatusBadRequest)
-		case errors.Is(err, domain.ErrInsufficientSum), errors.Is(err, service.ErrInsufficientBalance):
-			http.Error(w, "insufficient balance", http.StatusPaymentRequired)
+		case errors.Is(err, domain.ErrInvalidOrder):
+			response.Error(w, http.StatusUnprocessableEntity, "invalid order")
+		case errors.Is(err, domain.ErrInvalidInput):
+			response.Error(w, http.StatusBadRequest, "invalid request")
+		case errors.Is(err, domain.ErrInsufficientSum):
+			response.Error(w, http.StatusPaymentRequired, "insufficient balance")
 		default:
-			if h.logger != nil {
-				h.logger.Error("withdraw failed", zap.Error(err))
-			}
-			http.Error(w, "internal error", http.StatusInternalServerError)
+			h.logger.Error("withdraw failed", zap.Error(err))
+			response.Error(w, http.StatusInternalServerError, "internal error")
 		}
 		return
 	}

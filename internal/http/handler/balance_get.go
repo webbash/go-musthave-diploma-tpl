@@ -1,11 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	httpMiddleware "go-musthave-diploma-tpl/internal/http/middleware"
+	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
+
 	"go.uber.org/zap"
 )
 
@@ -27,16 +28,12 @@ func (h *balanceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	userID := httpMiddleware.UserIDFromContext(r.Context())
 	balance, err := h.balance.Get(r.Context(), userID)
 	if err != nil {
-		if h.logger != nil {
-			h.logger.Error("get balance failed", zap.Error(err))
-		}
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		h.logger.Error("get balance failed", zap.Error(err))
+		response.Error(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(BalanceResponse{
+	_ = response.JSON(w, http.StatusOK, BalanceResponse{
 		Current:   balance.Current,
 		Withdrawn: balance.Withdrawn,
 	})

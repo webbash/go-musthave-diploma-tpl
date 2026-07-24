@@ -2,33 +2,50 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"go.uber.org/zap"
 
 	"go-musthave-diploma-tpl/internal/config"
 	httpserver "go-musthave-diploma-tpl/internal/http"
 	"go-musthave-diploma-tpl/internal/repository"
 	"go-musthave-diploma-tpl/internal/service"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	cfg := config.Load()
-
 	logger, err := zap.NewProduction()
 	if err != nil {
 		panic(err)
 	}
+
+	if err := godotenv.Load(); err != nil {
+		logger.Error(".env file not found")
+	}
+
+	cfg := config.Load()
+
 	defer func() {
 		_ = logger.Sync()
 	}()
 
-	db, err := repository.OpenPostgres(cfg.DatabaseURI)
+	if cfg.DatabaseURI == "" {
+		logger.Fatal("database uri is empty")
+	}
+
+	db, err := sql.Open("pgx", cfg.DatabaseURI)
 	if err != nil {
 		logger.Fatal("open database", zap.Error(err))
+	}
+	if err := db.Ping(); err != nil {
+		_ = db.Close()
+		logger.Fatal("ping database", zap.Error(err))
 	}
 	defer func() {
 		if closeErr := db.Close(); closeErr != nil {
