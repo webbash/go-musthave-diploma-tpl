@@ -19,6 +19,42 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 	return &OrderRepository{db: db}
 }
 
+func (r *OrderRepository) GetByStatuses(ctx context.Context, statuses ...model.OrderStatus) ([]model.Order, error) {
+	selectQuery := `
+		SELECT number, user_id, status, accrual, uploaded_at, updated_at
+		FROM orders
+		WHERE status IN ($1)
+	`
+
+	rows, err := r.db.QueryContext(ctx, selectQuery, statuses)
+	if err != nil {
+		return nil, fmt.Errorf("list orders by statuses: %w", err)
+	}
+	defer rows.Close()
+
+	orders := make([]model.Order, 0)
+	for rows.Next() {
+		var order model.Order
+		if err := rows.Scan(
+			&order.Number,
+			&order.UserID,
+			&order.Status,
+			&order.Accrual,
+			&order.UploadedAt,
+			&order.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan order: %w", err)
+		}
+		orders = append(orders, order)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate orders: %w", err)
+	}
+
+	return orders, nil
+
+}
+
 func (r *OrderRepository) SaveOrder(ctx context.Context, order model.Order) (model.Order, error) {
 	const insertQuery = `
 		INSERT INTO orders (number, user_id, status, accrual, uploaded_at, updated_at)
