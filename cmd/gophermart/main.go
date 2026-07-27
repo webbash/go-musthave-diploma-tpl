@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"go-musthave-diploma-tpl/internal/accrual"
 	"net/http"
 	"os/signal"
 	"syscall"
@@ -77,7 +78,14 @@ func main() {
 		}
 	}()
 
+	accrualClient := accrual.NewAccrualClient(cfg.AccrualSystemAddress, &http.Client{}, logger)
+	generator := accrual.NewGenerator(orderRepo, time.Second*3, logger)
+	inputCh := generator.Run(ctx)
+	worker := accrual.NewWorker(orderRepo, accrualClient, logger, inputCh)
+
+	worker.Run(ctx)
 	<-ctx.Done()
+	worker.Wait()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

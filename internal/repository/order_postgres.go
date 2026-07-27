@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"go-musthave-diploma-tpl/internal/domain"
@@ -20,13 +21,24 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 }
 
 func (r *OrderRepository) GetByStatuses(ctx context.Context, statuses ...model.OrderStatus) ([]model.Order, error) {
-	selectQuery := `
+	if len(statuses) == 0 {
+		return []model.Order{}, nil
+	}
+
+	placeholders := make([]string, 0, len(statuses))
+	args := make([]any, 0, len(statuses))
+	for i, status := range statuses {
+		placeholders = append(placeholders, fmt.Sprintf("$%d", i+1))
+		args = append(args, string(status))
+	}
+
+	selectQuery := fmt.Sprintf(`
 		SELECT number, user_id, status, accrual, uploaded_at, updated_at
 		FROM orders
-		WHERE status IN ($1)
-	`
+		WHERE status IN (%s)
+	`, strings.Join(placeholders, ", "))
 
-	rows, err := r.db.QueryContext(ctx, selectQuery, statuses)
+	rows, err := r.db.QueryContext(ctx, selectQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list orders by statuses: %w", err)
 	}

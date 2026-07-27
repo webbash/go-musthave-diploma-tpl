@@ -8,10 +8,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type OrderRepository interface {
-	GetByStatuses(ctx context.Context, statuses ...model.OrderStatus) ([]model.Order, error)
-}
-
 type Generator struct {
 	repository   OrderRepository
 	pollInterval time.Duration
@@ -22,7 +18,7 @@ func NewGenerator(repository OrderRepository, pollInterval time.Duration, logger
 	return &Generator{repository: repository, pollInterval: pollInterval, logger: logger}
 }
 
-func (g *Generator) Run(ctx context.Context) <-chan model.Order {
+func (g *Generator) Run(ctx context.Context) chan model.Order {
 	ch := make(chan model.Order)
 
 	go func() {
