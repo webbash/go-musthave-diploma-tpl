@@ -84,6 +84,8 @@ func (w *Worker) processOrder(
 			return fmt.Errorf("update order %s: %w", updatedOrder.Number, err)
 		}
 
+		// TODO Обновлять баланс пользователя в таблице users
+
 		return nil
 	}
 }
