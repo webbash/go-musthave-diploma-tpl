@@ -2,19 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	"go-musthave-diploma-tpl/internal/auth"
 	"go-musthave-diploma-tpl/internal/domain"
-	"go-musthave-diploma-tpl/internal/model"
 )
-
-type UserRepository interface {
-	CreateUser(ctx context.Context, login, passwordHash string) (model.User, error)
-	FindUserByLogin(ctx context.Context, login string) (model.User, error)
-}
 
 type AuthService struct {
 	repository UserRepository
@@ -22,8 +17,8 @@ type AuthService struct {
 	tokenTTL   time.Duration
 }
 
-func NewAuthService(store UserRepository, jwtSecret string) *AuthService {
-	return &AuthService{repository: store, jwtSecret: jwtSecret, tokenTTL: 24 * time.Hour}
+func NewAuthService(store UserRepository, jwtSecret string, jwtTTL int) *AuthService {
+	return &AuthService{repository: store, jwtSecret: jwtSecret, tokenTTL: time.Duration(jwtTTL) * time.Minute}
 }
 
 type AuthResult struct {
@@ -37,20 +32,20 @@ func (s *AuthService) Register(ctx context.Context, login, password string) (Aut
 
 	passwordHash, err := auth.HashPassword(password)
 	if err != nil {
-		return AuthResult{}, err
+		return AuthResult{}, fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	user, err := s.repository.CreateUser(ctx, login, passwordHash)
 	if err != nil {
-		if err == domain.ErrAlreadyExists {
+		if errors.Is(err, domain.ErrAlreadyExists) {
 			return AuthResult{}, domain.ErrAlreadyExists
 		}
-		return AuthResult{}, err
+		return AuthResult{}, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	token, err := auth.GenerateJWT(strconv.FormatInt(user.ID, 10), s.jwtSecret, s.tokenTTL)
 	if err != nil {
-		return AuthResult{}, err
+		return AuthResult{}, fmt.Errorf("failed to generate JWT: %w", err)
 	}
 
 	return AuthResult{Token: token}, nil

@@ -2,7 +2,7 @@ package domain
 
 import "unicode"
 
-func IsDigits(value string) bool {
+func isDigits(value string) bool {
 	if value == "" {
 		return false
 	}
@@ -15,7 +15,7 @@ func IsDigits(value string) bool {
 }
 
 func IsValidLuhn(number string) bool {
-	if !IsDigits(number) {
+	if !isDigits(number) {
 		return false
 	}
 

@@ -47,7 +47,6 @@ func (g *Generator) Run(ctx context.Context) chan model.Order {
 			case <-ctx.Done():
 				return
 			}
-
 		}
 	}()
 

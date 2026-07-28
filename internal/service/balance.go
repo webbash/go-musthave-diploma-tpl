@@ -8,14 +8,6 @@ import (
 	"go-musthave-diploma-tpl/internal/model"
 )
 
-type BalanceRepository interface {
-	GetBalance(ctx context.Context, userID int64) (float64, error)
-	GetWithdrawnTotal(ctx context.Context, userID int64) (float64, error)
-	AddAccrual(ctx context.Context, userID int64, sum float64) error
-	Withdraw(ctx context.Context, userID int64, order string, sum float64, processedAt time.Time) error
-	ListWithdrawals(ctx context.Context, userID int64) ([]model.Withdrawal, error)
-}
-
 type Balance struct {
 	Current   float64
 	Withdrawn float64
@@ -44,7 +36,7 @@ func (s *BalanceService) Get(ctx context.Context, userID int64) (Balance, error)
 }
 
 func (s *BalanceService) Withdraw(ctx context.Context, userID int64, order string, sum float64) error {
-	if !domain.IsDigits(order) || !domain.IsValidLuhn(order) {
+	if !domain.IsValidLuhn(order) {
 		return domain.ErrInvalidOrder
 	}
 	if sum <= 0 {

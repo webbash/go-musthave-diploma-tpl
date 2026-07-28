@@ -58,7 +58,7 @@ func main() {
 	orderRepo := repository.NewOrderRepository(db)
 	balanceRepo := repository.NewBalanceRepository(db)
 
-	authSvc := service.NewAuthService(userRepo, cfg.JWTSecret)
+	authSvc := service.NewAuthService(userRepo, cfg.JWTSecret, cfg.JWTTTL)
 	orderSvc := service.NewOrderService(orderRepo)
 	balanceSvc := service.NewBalanceService(balanceRepo)
 	server := httpserver.NewServer(authSvc, orderSvc, balanceSvc, cfg.JWTSecret, logger)

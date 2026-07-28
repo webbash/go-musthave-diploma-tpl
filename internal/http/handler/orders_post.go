@@ -32,7 +32,7 @@ func (h *postOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	number := strings.TrimSpace(string(body))
-	already, err := h.service.Submit(r.Context(), userID, number)
+	_, err = h.service.Create(r.Context(), userID, number)
 	if err != nil {
 		switch {
 		case errors.Is(err, domain.ErrConflict):
@@ -41,6 +41,9 @@ func (h *postOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			response.Error(w, http.StatusUnprocessableEntity, "invalid order")
 		case errors.Is(err, domain.ErrInvalidInput):
 			response.Error(w, http.StatusBadRequest, "invalid request")
+		case errors.Is(err, domain.ErrAlreadyExists):
+			w.WriteHeader(http.StatusOK)
+			return
 		default:
 			h.logger.Error("post order failed", zap.Error(err))
 			response.Error(w, http.StatusInternalServerError, "internal error")
@@ -48,9 +51,5 @@ func (h *postOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if already {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
 	w.WriteHeader(http.StatusAccepted)
 }
