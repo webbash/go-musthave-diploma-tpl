@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"go-musthave-diploma-tpl/internal/domain"
 	"go-musthave-diploma-tpl/internal/model"
 )
 
@@ -36,7 +35,7 @@ func (r *UserRepository) CreateUser(ctx context.Context, login, passwordHash str
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
-			return model.User{}, domain.ErrAlreadyExists
+			return model.User{}, ErrDuplicateUser
 		}
 		return model.User{}, fmt.Errorf("create user: %w", err)
 	}
@@ -66,7 +65,7 @@ func (r *UserRepository) FindUserByLogin(ctx context.Context, login string) (mod
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.User{}, domain.ErrNotFound
+			return model.User{}, ErrUserNotFound
 		}
 		return model.User{}, fmt.Errorf("find user by login: %w", err)
 	}

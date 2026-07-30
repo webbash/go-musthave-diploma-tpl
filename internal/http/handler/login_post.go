@@ -40,7 +40,7 @@ func (h *loginPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res, err := h.auth.Login(r.Context(), req.Login, req.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrUnauthorized):
+		case errors.Is(err, service.ErrUnauthorized):
 			response.Error(w, http.StatusUnauthorized, "unauthorized")
 		case errors.Is(err, domain.ErrInvalidInput):
 			response.Error(w, http.StatusBadRequest, "invalid request")

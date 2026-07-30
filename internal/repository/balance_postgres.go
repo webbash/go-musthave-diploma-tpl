@@ -29,33 +29,12 @@ func (r *BalanceRepository) GetBalance(ctx context.Context, userID int64) (float
 	var balance float64
 	if err := r.db.QueryRowContext(ctx, q, userID).Scan(&balance); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return 0, domain.ErrNotFound
+			return 0, ErrUserNotFound
 		}
 		return 0, fmt.Errorf("get balance: %w", err)
 	}
 
 	return balance, nil
-}
-
-func (r *BalanceRepository) AddAccrual(ctx context.Context, userID int64, sum float64) error {
-	const q = `
-		UPDATE users
-		SET balance = COALESCE(balance, 0) + $2
-		WHERE id = $1
-	`
-
-	res, err := r.db.ExecContext(ctx, q, userID, sum)
-	if err != nil {
-		return fmt.Errorf("add accrual: %w", err)
-	}
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("rows affected: %w", err)
-	}
-	if affected == 0 {
-		return domain.ErrNotFound
-	}
-	return nil
 }
 
 func (r *BalanceRepository) Withdraw(ctx context.Context, userID int64, order string, sum float64, processedAt time.Time) error {
@@ -76,12 +55,12 @@ func (r *BalanceRepository) Withdraw(ctx context.Context, userID int64, order st
 	var current float64
 	if err := tx.QueryRowContext(ctx, lockQuery, userID).Scan(&current); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return domain.ErrNotFound
+			return ErrUserNotFound
 		}
 		return fmt.Errorf("lock balance: %w", err)
 	}
 	if current < sum {
-		return domain.ErrInsufficientSum
+		return domain.ErrNotEnoughBalance
 	}
 
 	const updateQuery = `

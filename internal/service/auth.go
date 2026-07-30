@@ -9,6 +9,7 @@ import (
 
 	"go-musthave-diploma-tpl/internal/auth"
 	"go-musthave-diploma-tpl/internal/domain"
+	"go-musthave-diploma-tpl/internal/repository"
 )
 
 type AuthService struct {
@@ -37,8 +38,8 @@ func (s *AuthService) Register(ctx context.Context, login, password string) (Aut
 
 	user, err := s.repository.CreateUser(ctx, login, passwordHash)
 	if err != nil {
-		if errors.Is(err, domain.ErrAlreadyExists) {
-			return AuthResult{}, domain.ErrAlreadyExists
+		if errors.Is(err, repository.ErrDuplicateUser) {
+			return AuthResult{}, domain.ErrUserAlreadyExists
 		}
 		return AuthResult{}, fmt.Errorf("failed to create user: %w", err)
 	}
@@ -54,10 +55,13 @@ func (s *AuthService) Register(ctx context.Context, login, password string) (Aut
 func (s *AuthService) Login(ctx context.Context, login, password string) (AuthResult, error) {
 	user, err := s.repository.FindUserByLogin(ctx, login)
 	if err != nil {
-		return AuthResult{}, domain.ErrUnauthorized
+		if errors.Is(err, repository.ErrUserNotFound) {
+			return AuthResult{}, ErrUnauthorized
+		}
+		return AuthResult{}, fmt.Errorf("failed to find user: %w", err)
 	}
 	if err := auth.CheckPassword(user.PasswordHash, password); err != nil {
-		return AuthResult{}, domain.ErrUnauthorized
+		return AuthResult{}, ErrUnauthorized
 	}
 
 	token, err := auth.GenerateJWT(strconv.FormatInt(user.ID, 10), s.jwtSecret, s.tokenTTL)

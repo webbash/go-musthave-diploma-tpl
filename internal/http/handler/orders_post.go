@@ -35,13 +35,13 @@ func (h *postOrderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err = h.service.Create(r.Context(), userID, number)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrConflict):
-			response.Error(w, http.StatusConflict, "conflict")
-		case errors.Is(err, domain.ErrInvalidOrder):
+		case errors.Is(err, domain.ErrInvalidOrderNumber):
 			response.Error(w, http.StatusUnprocessableEntity, "invalid order")
 		case errors.Is(err, domain.ErrInvalidInput):
 			response.Error(w, http.StatusBadRequest, "invalid request")
-		case errors.Is(err, domain.ErrAlreadyExists):
+		case errors.Is(err, domain.ErrOrderAlreadyCreatedByAnotherUser):
+			response.Error(w, http.StatusConflict, "another user have order")
+		case errors.Is(err, domain.ErrOrderAlreadyCreatedByCurrentUser):
 			w.WriteHeader(http.StatusOK)
 			return
 		default:

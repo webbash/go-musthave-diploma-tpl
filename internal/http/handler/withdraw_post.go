@@ -38,11 +38,11 @@ func (h *withdrawPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 	if err := h.balance.Withdraw(r.Context(), userID, req.Order, req.Sum); err != nil {
 		switch {
-		case errors.Is(err, domain.ErrInvalidOrder):
+		case errors.Is(err, domain.ErrInvalidOrderNumber):
 			response.Error(w, http.StatusUnprocessableEntity, "invalid order")
 		case errors.Is(err, domain.ErrInvalidInput):
 			response.Error(w, http.StatusBadRequest, "invalid request")
-		case errors.Is(err, domain.ErrInsufficientSum):
+		case errors.Is(err, domain.ErrNotEnoughBalance):
 			response.Error(w, http.StatusPaymentRequired, "insufficient balance")
 		default:
 			h.logger.Error("withdraw failed", zap.Error(err))

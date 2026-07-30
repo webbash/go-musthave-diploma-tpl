@@ -79,12 +79,10 @@ func (w *Worker) processOrder(
 			return fmt.Errorf("get order %s: %w", order.Number, err)
 		}
 
-		err = w.repository.UpdateOrderStatus(ctx, updatedOrder.Number, updatedOrder.Status, updatedOrder.Accrual)
+		err = w.repository.UpdateOrder(ctx, updatedOrder.Number, updatedOrder.Status, updatedOrder.Accrual)
 		if err != nil {
 			return fmt.Errorf("update order %s: %w", updatedOrder.Number, err)
 		}
-
-		// TODO Обновлять баланс пользователя в таблице users
 
 		return nil
 	}

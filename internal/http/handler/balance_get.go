@@ -16,17 +16,17 @@ type BalanceResponse struct {
 }
 
 type balanceGetHandler struct {
-	balance *service.BalanceService
-	logger  *zap.Logger
+	balanceService *service.BalanceService
+	logger         *zap.Logger
 }
 
 func NewGetBalance(balance *service.BalanceService, logger *zap.Logger) http.Handler {
-	return &balanceGetHandler{balance: balance, logger: logger}
+	return &balanceGetHandler{balanceService: balance, logger: logger}
 }
 
 func (h *balanceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	userID := httpMiddleware.UserIDFromContext(r.Context())
-	balance, err := h.balance.Get(r.Context(), userID)
+	balance, err := h.balanceService.Get(r.Context(), userID)
 	if err != nil {
 		h.logger.Error("get balance failed", zap.Error(err))
 		response.Error(w, http.StatusInternalServerError, "internal error")

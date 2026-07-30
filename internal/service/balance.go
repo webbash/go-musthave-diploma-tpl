@@ -37,7 +37,7 @@ func (s *BalanceService) Get(ctx context.Context, userID int64) (Balance, error)
 
 func (s *BalanceService) Withdraw(ctx context.Context, userID int64, order string, sum float64) error {
 	if !domain.IsValidLuhn(order) {
-		return domain.ErrInvalidOrder
+		return domain.ErrInvalidOrderNumber
 	}
 	if sum <= 0 {
 		return domain.ErrInvalidInput

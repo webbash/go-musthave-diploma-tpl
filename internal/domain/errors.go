@@ -3,11 +3,11 @@ package domain
 import "errors"
 
 var (
-	ErrAlreadyExists   = errors.New("already exists")
-	ErrNotFound        = errors.New("not found")
-	ErrUnauthorized    = errors.New("unauthorized")
-	ErrConflict        = errors.New("conflict")
-	ErrInvalidInput    = errors.New("invalid input")
-	ErrInvalidOrder    = errors.New("invalid order")
-	ErrInsufficientSum = errors.New("insufficient balance")
+	ErrUserAlreadyExists                = errors.New("already exists")
+	ErrOrderAlreadyCreatedByAnotherUser = errors.New("another user have order")
+	ErrOrderAlreadyCreatedByCurrentUser = errors.New("order already created by current user")
+	ErrInvalidOrderNumber               = errors.New("invalid order number")
+	ErrNotEnoughBalance                 = errors.New("not enough money in balance")
+
+	ErrInvalidInput = errors.New("invalid input")
 )

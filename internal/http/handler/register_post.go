@@ -40,8 +40,8 @@ func (h *registerPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	res, err := h.auth.Register(r.Context(), req.Login, req.Password)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrAlreadyExists):
-			response.Error(w, http.StatusConflict, "conflict")
+		case errors.Is(err, domain.ErrUserAlreadyExists):
+			response.Error(w, http.StatusConflict, "login already exists")
 		case errors.Is(err, domain.ErrInvalidInput):
 			response.Error(w, http.StatusBadRequest, "invalid request")
 		default:

@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 type OrderStatus string
 
@@ -12,10 +16,10 @@ const (
 )
 
 type Order struct {
-	Number     string      `json:"order"`
-	UserID     int64       `json:"user_id,omitempty"`
-	Status     OrderStatus `json:"status"`
-	Accrual    float64     `json:"accrual"`
-	UploadedAt time.Time   `json:"uploaded_at,omitempty"`
-	UpdatedAt  time.Time   `json:"updated_at,omitempty"`
+	Number     string          `json:"order"`
+	UserID     int64           `json:"userId,omitempty"`
+	Status     OrderStatus     `json:"status"`
+	Accrual    decimal.Decimal `json:"accrual"`
+	UploadedAt time.Time       `json:"uploaded_at,omitempty"`
+	UpdatedAt  time.Time       `json:"updated_at,omitempty"`
 }
