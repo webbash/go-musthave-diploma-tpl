@@ -51,5 +51,7 @@ func (h *loginPostHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Authorization", "Bearer "+res.Token)
+
 	_ = response.JSON(w, http.StatusOK, LoginResponse{Token: res.Token})
 }
