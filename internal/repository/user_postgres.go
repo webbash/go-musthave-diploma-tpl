@@ -6,8 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jackc/pgx/v5/pgconn"
 	"go-musthave-diploma-tpl/internal/model"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type UserRepository struct {

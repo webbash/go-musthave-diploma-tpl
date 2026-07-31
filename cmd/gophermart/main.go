@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"go-musthave-diploma-tpl/internal/accrual"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -16,6 +18,8 @@ import (
 	httpserver "go-musthave-diploma-tpl/internal/http"
 	"go-musthave-diploma-tpl/internal/repository"
 	"go-musthave-diploma-tpl/internal/service"
+
+	"github.com/pressly/goose/v3"
 
 	"github.com/joho/godotenv"
 )
@@ -54,6 +58,16 @@ func main() {
 		}
 	}()
 
+	if err := goose.SetDialect("postgres"); err != nil {
+		logger.Error("failed to setting sql dialect", zap.Error(err))
+		os.Exit(1)
+	}
+
+	if err := goose.Up(db, "migrations"); err != nil {
+		logger.Error("failed to run migrations", zap.Error(err))
+		os.Exit(1)
+	}
+
 	userRepo := repository.NewUserRepository(db)
 	orderRepo := repository.NewOrderRepository(db)
 	balanceRepo := repository.NewBalanceRepository(db)
@@ -73,7 +87,7 @@ func main() {
 
 	go func() {
 		logger.Info("gophermart listening", zap.String("addr", cfg.RunAddress))
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("listen", zap.Error(err))
 		}
 	}()
