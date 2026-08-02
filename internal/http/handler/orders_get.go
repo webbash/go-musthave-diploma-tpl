@@ -8,15 +8,14 @@ import (
 	"go-musthave-diploma-tpl/internal/http/response"
 	"go-musthave-diploma-tpl/internal/service"
 
-	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
 type OrderResponse struct {
-	Number     string          `json:"number"`
-	Status     string          `json:"status"`
-	Accrual    decimal.Decimal `json:"accrual,omitempty"`
-	UploadedAt time.Time       `json:"uploaded_at"`
+	Number     string    `json:"number"`
+	Status     string    `json:"status"`
+	Accrual    float64   `json:"accrual,omitempty"`
+	UploadedAt time.Time `json:"uploaded_at"`
 }
 
 type getOrdersHandler struct {
@@ -43,10 +42,11 @@ func (h *getOrdersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	resp := make([]OrderResponse, 0, len(orders))
 	for _, order := range orders {
+		accrualFloat, _ := order.Accrual.Float64()
 		resp = append(resp, OrderResponse{
 			Number:     order.Number,
 			Status:     string(order.Status),
-			Accrual:    order.Accrual,
+			Accrual:    accrualFloat,
 			UploadedAt: order.UploadedAt,
 		})
 	}
