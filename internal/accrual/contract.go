@@ -11,3 +11,7 @@ type OrderRepository interface {
 	GetByStatuses(ctx context.Context, statuses ...model.OrderStatus) ([]model.Order, error)
 	UpdateOrder(ctx context.Context, number string, status model.OrderStatus, accrual decimal.Decimal) error
 }
+
+type AccrualClient interface {
+	GetOrder(ctx context.Context, orderId string) (model.Order, error)
+}

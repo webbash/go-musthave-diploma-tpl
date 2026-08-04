@@ -14,12 +14,12 @@ type Worker struct {
 	repository OrderRepository
 	workers    int
 	inputCh    chan model.Order
-	client     *Client
+	client     AccrualClient
 	logger     *zap.Logger
 	wg         *sync.WaitGroup
 }
 
-func NewWorker(repository OrderRepository, client *Client, logger *zap.Logger, inputCh chan model.Order) *Worker {
+func NewWorker(repository OrderRepository, client AccrualClient, logger *zap.Logger, inputCh chan model.Order, workers int) *Worker {
 	return &Worker{
 		repository: repository,
 		client:     client,

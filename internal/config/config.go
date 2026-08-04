@@ -12,6 +12,7 @@ type Config struct {
 	AccrualSystemAddress string
 	JWTSecret            string
 	JWTTTL               int
+	WorkersCount         int
 }
 
 func Load() Config {
@@ -22,6 +23,7 @@ func Load() Config {
 	flag.StringVar(&cfg.AccrualSystemAddress, "r", envOrDefaultString("ACCRUAL_SYSTEM_ADDRESS", ""), "accrual system address")
 	flag.StringVar(&cfg.JWTSecret, "j", envOrDefaultString("JWT_SECRET", "dev-secret"), "jwt secret")
 	flag.IntVar(&cfg.JWTTTL, "t", envOrDefaultInt("JWT_TTL", 60), "jwt ttl")
+	flag.IntVar(&cfg.WorkersCount, "w", envOrDefaultInt("WORKERS", 3), "number of workers")
 	flag.Parse()
 
 	return cfg

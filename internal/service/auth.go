@@ -12,6 +12,8 @@ import (
 	"go-musthave-diploma-tpl/internal/repository"
 )
 
+var ErrUnauthorized = errors.New("unauthorized")
+
 type AuthService struct {
 	repository UserRepository
 	jwtSecret  string

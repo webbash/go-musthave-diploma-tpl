@@ -95,7 +95,7 @@ func main() {
 	accrualClient := accrual.NewAccrualClient(cfg.AccrualSystemAddress, &http.Client{}, logger)
 	generator := accrual.NewGenerator(orderRepo, time.Second*3, logger)
 	inputCh := generator.Run(ctx)
-	worker := accrual.NewWorker(orderRepo, accrualClient, logger, inputCh)
+	worker := accrual.NewWorker(orderRepo, accrualClient, logger, inputCh, cfg.WorkersCount)
 
 	worker.Run(ctx)
 	<-ctx.Done()
