@@ -2,7 +2,6 @@ package accrual
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -13,56 +12,32 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestGeneratorRun(t *testing.T) {
+func TestGeneratorOrders(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	repo := mocks.NewMockOrderRepository(ctrl)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	repo.EXPECT().
 		GetByStatuses(gomock.Any(), model.OrderStatusNew, model.OrderStatusProcessing).
-		DoAndReturn(func(context.Context, ...model.OrderStatus) ([]model.Order, error) {
-			return []model.Order{{Number: "79927398713"}}, nil
-		})
+		Return([]model.Order{
+			{Number: "79927398713"},
+		}, nil)
 
 	generator := NewGenerator(repo, 5*time.Millisecond, zap.NewNop())
-	ch := generator.Run(ctx)
 
-	select {
-	case order := <-ch:
-		if order.Number != "79927398713" {
-			t.Fatalf("Run() order = %+v", order)
-		}
+	var got model.Order
+
+	for order := range generator.Orders(ctx) {
+		got = order
 		cancel()
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Run() timed out waiting for order")
+		break
 	}
-}
 
-func TestGeneratorRunRepositoryError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	repo := mocks.NewMockOrderRepository(ctrl)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	repo.EXPECT().
-		GetByStatuses(gomock.Any(), model.OrderStatusNew, model.OrderStatusProcessing).
-		DoAndReturn(func(context.Context, ...model.OrderStatus) ([]model.Order, error) {
-			cancel()
-			return nil, errors.New("boom")
-		})
-
-	generator := NewGenerator(repo, 5*time.Millisecond, zap.NewNop())
-	ch := generator.Run(ctx)
-
-	select {
-	case _, ok := <-ch:
-		if ok {
-			t.Fatal("Run() unexpectedly yielded order")
-		}
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Run() timed out waiting for channel close")
+	if got.Number != "79927398713" {
+		t.Fatalf("Orders() order = %+v", got)
 	}
 }

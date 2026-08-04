@@ -93,13 +93,15 @@ func main() {
 	}()
 
 	accrualClient := accrual.NewAccrualClient(cfg.AccrualSystemAddress, &http.Client{}, logger)
-	generator := accrual.NewGenerator(orderRepo, time.Second*3, logger)
-	inputCh := generator.Run(ctx)
-	worker := accrual.NewWorker(orderRepo, accrualClient, logger, inputCh, cfg.WorkersCount)
+	generator := accrual.NewGenerator(orderRepo, time.Second*time.Duration(cfg.PollInterval), logger)
+	orders := generator.Orders(ctx)
+	worker := accrual.NewWorker(orderRepo, accrualClient, logger, cfg.WorkersCount)
 
-	worker.Run(ctx)
+	err = worker.Run(ctx, orders)
+	if err != nil {
+		logger.Error("failed to run worker", zap.Error(err))
+	}
 	<-ctx.Done()
-	worker.Wait()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -5,59 +5,43 @@ import (
 	"errors"
 	"fmt"
 	"go-musthave-diploma-tpl/internal/model"
-	"sync"
+	"iter"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 type Worker struct {
 	repository OrderRepository
 	workers    int
-	inputCh    chan model.Order
 	client     AccrualClient
 	logger     *zap.Logger
-	wg         *sync.WaitGroup
 }
 
-func NewWorker(repository OrderRepository, client AccrualClient, logger *zap.Logger, inputCh chan model.Order, workers int) *Worker {
+func NewWorker(repository OrderRepository, client AccrualClient, logger *zap.Logger, workers int) *Worker {
 	return &Worker{
 		repository: repository,
 		client:     client,
 		logger:     logger,
-		wg:         &sync.WaitGroup{},
-		workers:    3, // TODO
-		inputCh:    inputCh,
+		workers:    workers,
 	}
 }
 
-func (w *Worker) Run(ctx context.Context) {
-	rateLimiter := NewRateLimiter()
-	w.wg.Add(w.workers)
+func (w *Worker) Run(ctx context.Context, orders iter.Seq[model.Order]) error {
+	limiter := NewRateLimiter()
 
-	for i := 0; i < w.workers; i++ {
-		go func() {
+	group, ctx := errgroup.WithContext(ctx)
+	group.SetLimit(w.workers)
 
-			defer w.wg.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case order, ok := <-w.inputCh:
-					if !ok {
-						return
-					}
-					err := w.processOrder(ctx, order, rateLimiter)
-					if err != nil {
-						w.logger.Error("Error processing order", zap.String("order_number", order.Number), zap.Error(err))
-					}
-				}
-			}
-		}()
+	for order := range orders {
+		order := order
+
+		group.Go(func() error {
+			return w.processOrder(ctx, order, limiter)
+		})
 	}
-}
 
-func (w *Worker) Wait() {
-	w.wg.Wait()
+	return group.Wait()
 }
 
 func (w *Worker) processOrder(

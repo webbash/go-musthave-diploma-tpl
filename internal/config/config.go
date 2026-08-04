@@ -13,6 +13,7 @@ type Config struct {
 	JWTSecret            string
 	JWTTTL               int
 	WorkersCount         int
+	PollInterval         int
 }
 
 func Load() Config {
@@ -24,6 +25,7 @@ func Load() Config {
 	flag.StringVar(&cfg.JWTSecret, "j", envOrDefaultString("JWT_SECRET", "dev-secret"), "jwt secret")
 	flag.IntVar(&cfg.JWTTTL, "t", envOrDefaultInt("JWT_TTL", 60), "jwt ttl")
 	flag.IntVar(&cfg.WorkersCount, "w", envOrDefaultInt("WORKERS", 3), "number of workers")
+	flag.IntVar(&cfg.PollInterval, "p", envOrDefaultInt("POLL_INTERVAL", 3), "seconds of polling")
 	flag.Parse()
 
 	return cfg

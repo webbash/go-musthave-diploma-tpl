@@ -19,38 +19,89 @@ func TestWorkerRun(t *testing.T) {
 	defer ctrl.Finish()
 
 	repo := mocks.NewMockOrderRepository(ctrl)
+
 	repo.EXPECT().
-		UpdateOrder(gomock.Any(), "79927398713", model.OrderStatusProcessed, decimal.NewFromFloat(15.5)).
-		Return(nil)
+		GetByStatuses(gomock.Any(), model.OrderStatusNew).
+		Return([]model.Order{
+			{
+				Number:  "79927398713",
+				Status:  model.OrderStatusNew,
+				Accrual: decimal.Zero,
+			},
+		}, nil).
+		Times(1)
+
+	processed := make(chan struct{})
+
+	repo.EXPECT().
+		UpdateOrder(
+			gomock.Any(),
+			"79927398713",
+			model.OrderStatusProcessed,
+			decimal.NewFromFloat(15.5),
+		).
+		DoAndReturn(func(
+			context.Context,
+			string,
+			model.OrderStatus,
+			decimal.Decimal,
+		) error {
+			close(processed)
+			return nil
+		}).
+		Times(1)
 
 	client := mocks.NewMockAccrualClient(ctrl)
+
 	client.EXPECT().
 		GetOrder(gomock.Any(), "79927398713").
 		Return(model.Order{
 			Number:  "79927398713",
 			Status:  model.OrderStatusProcessed,
 			Accrual: decimal.NewFromFloat(15.5),
-		}, nil)
-	inputCh := make(chan model.Order, 1)
-	inputCh <- model.Order{Number: "79927398713"}
-	close(inputCh)
+		}, nil).
+		Times(1)
 
-	worker := NewWorker(repo, client, zap.NewNop(), inputCh, 1)
+	generator := NewGenerator(
+		repo,
+		5*time.Millisecond,
+		zap.NewNop(),
+	)
+
+	worker := NewWorker(
+		repo,
+		client,
+		zap.NewNop(),
+		1,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	worker.Run(ctx)
-	done := make(chan struct{})
+	done := make(chan error, 1)
+
 	go func() {
-		worker.Wait()
-		close(done)
+		done <- worker.Run(ctx, generator.Orders(ctx))
 	}()
 
+	// Ждём именно фактической обработки заказа.
 	select {
-	case <-done:
+	case <-processed:
+		cancel()
+
 	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Wait() timed out")
+		t.Fatal("order was not processed")
+	}
+
+	// После cancel Run должен завершиться.
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("Run() error = %v", err)
+		}
+
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("Run() did not stop after context cancellation")
 	}
 }
 
@@ -74,7 +125,7 @@ func TestWorkerProcessOrderRateLimitRetry(t *testing.T) {
 			Status:  model.OrderStatusProcessed,
 			Accrual: decimal.NewFromFloat(15.5),
 		}, nil)
-	worker := NewWorker(repo, client, zap.NewNop(), make(chan model.Order), 3)
+	worker := NewWorker(repo, client, zap.NewNop(), 3)
 
 	err := worker.processOrder(context.Background(), model.Order{Number: "79927398713"}, NewRateLimiter())
 	if err != nil {
@@ -99,7 +150,7 @@ func TestWorkerProcessOrderUpdateError(t *testing.T) {
 			Status:  model.OrderStatusProcessed,
 			Accrual: decimal.NewFromFloat(15.5),
 		}, nil)
-	worker := NewWorker(repo, client, zap.NewNop(), make(chan model.Order), 3)
+	worker := NewWorker(repo, client, zap.NewNop(), 3)
 
 	err := worker.processOrder(context.Background(), model.Order{Number: "79927398713"}, NewRateLimiter())
 	if err == nil {

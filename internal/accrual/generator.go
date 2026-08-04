@@ -3,6 +3,7 @@ package accrual
 import (
 	"context"
 	"go-musthave-diploma-tpl/internal/model"
+	"iter"
 	"time"
 
 	"go.uber.org/zap"
@@ -18,15 +19,16 @@ func NewGenerator(repository OrderRepository, pollInterval time.Duration, logger
 	return &Generator{repository: repository, pollInterval: pollInterval, logger: logger}
 }
 
-func (g *Generator) Run(ctx context.Context) chan model.Order {
-	ch := make(chan model.Order)
-
-	go func() {
+func (g *Generator) Orders(ctx context.Context) iter.Seq[model.Order] {
+	return func(yield func(model.Order) bool) {
 		ticker := time.NewTicker(g.pollInterval)
-		defer close(ch)
 		defer ticker.Stop()
+
 		for {
 			select {
+			case <-ctx.Done():
+				return
+
 			case <-ticker.C:
 				orders, err := g.repository.GetByStatuses(
 					ctx,
@@ -37,18 +39,13 @@ func (g *Generator) Run(ctx context.Context) chan model.Order {
 					g.logger.Error("failed to get orders", zap.Error(err))
 					continue
 				}
+
 				for _, order := range orders {
-					select {
-					case <-ctx.Done():
+					if !yield(order) {
 						return
-					case ch <- order:
 					}
 				}
-			case <-ctx.Done():
-				return
 			}
 		}
-	}()
-
-	return ch
+	}
 }
