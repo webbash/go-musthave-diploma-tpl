@@ -1,0 +1,8 @@
+.git
+.idea
+.agents
+.codex
+cmd/accrual
+**/*_test.go
+README.md
+SPECIFICATION.md

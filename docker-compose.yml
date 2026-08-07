@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: gophermart-postgres
+    environment:
+      POSTGRES_DB: gophermart
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - gophermart_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gophermart"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  gophermart_pgdata:

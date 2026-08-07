@@ -23,3 +23,39 @@ git fetch template && git checkout template/master .github
 ```
 
 Затем добавьте полученные изменения в свой репозиторий.
+
+# Миграции
+
+Миграции оформлены в формате `goose` и лежат в директории `migrations/`.
+
+Пример запуска:
+
+```bash
+goose -dir migrations postgres "$DATABASE_URI" up
+```
+
+Откат:
+
+```bash
+goose -dir migrations postgres "$DATABASE_URI" down
+```
+
+# Локальная БД
+
+Для запуска PostgreSQL используйте:
+
+```bash
+docker compose up -d
+```
+
+Для локального Go-приложения удобно взять переменные из `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+После этого запускайте приложение локально, а `DATABASE_URI` указывайте на:
+
+```bash
+postgres://postgres:postgres@localhost:5432/praktikum?sslmode=disable
+```
